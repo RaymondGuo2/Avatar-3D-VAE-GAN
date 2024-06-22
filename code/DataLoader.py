@@ -4,6 +4,8 @@ from PIL import Image
 import numpy as np
 from torchvision import transforms
 import torch
+import random
+import shutil
 
 
 # Load the dataset
@@ -31,6 +33,60 @@ class DataLoader(Dataset):
     def __len__(self):
         return len([name for name in self.dir if name.endswith('.' + "npy")])
 
+
+# Function to store corresponding .jpg, .obj, .npy, and .binvox files as sets
+def split_files_to_sets(path):
+    # Create dictionary to store sets of files
+    file_set = {}
+    for file in os.listdir(path):
+        if file.endswith(".jpg"):
+            base = os.path.splitext(file)[0]
+            binvox_path = file.replace(".jpg", "_mesh.binvox")
+            obj_path = file.replace(".jpg", "_mesh.obj")
+            numpy_path = file.replace(".jpg", "_mesh.npy")
+            # Store sets of files together
+            file_set[base] = {'jpg': file, 'binvox': binvox_path, 'obj': obj_path, 'npy': numpy_path}
+    file_sets = list(file_set.values())
+    return file_sets
+
+
+# Function to split sets into their train-test folders
+def train_test_split(root, train_path, test_path, train_ratio=0.8, random_seed=None):
+    # Call original function
+    sets = split_files_to_sets(root)
+
+    if random_seed is not None:
+        np.random.seed(random_seed)
+
+    # Shuffle the dataset
+    random.shuffle(sets)
+
+    # Manual function to partition the randomly shuffled set into train and test folders
+    partition = int(len(sets) * train_ratio)
+    train_sets = sets[:partition]
+    test_sets = sets[partition:]
+
+    # Create folders if they do not exist
+    if not os.path.exists(train_path):
+        os.makedirs(train_path)
+
+    if not os.path.exists(test_path):
+        os.makedirs(test_path)
+
+    # Copy the training set files from the root directory into the training set folder
+    for fileset in train_sets:
+        for file_type, file_name in fileset.items():
+            root_path = os.path.join(root, file_name)
+            train_set_path = os.path.join(train_path, file_name)
+            shutil.copyfile(root_path, train_set_path)
+
+    # Copy the test set files from the root directory into the test set folder
+    for fileset in test_sets:
+        for file_type, file_name in fileset.items():
+            root_path = os.path.join(root, file_name)
+            test_set_path = os.path.join(test_path, file_name)
+            shutil.copyfile(root_path, test_set_path)
+
+
 if __name__ == '__main__':
-    data = DataLoader(root_dir="../data/", image_size=28)
-    print(data[5])
+    train_test_split('../data/', '../data/train_files', '../data/test_files', 0.8)
