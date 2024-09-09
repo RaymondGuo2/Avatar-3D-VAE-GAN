@@ -6,7 +6,6 @@ from utils import reparameterise, SavePloat_Voxels
 import torch.autograd
 import os
 
-
 def test_vae(dataset, batch_size=32, lr=3e-4):
 
     # Load the dataset
